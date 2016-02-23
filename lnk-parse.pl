@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 #
 # Copyright (C) 2006 by Jacob Cunningham.  All rights reserved
+# Copyright (C) 2016 by Loïc Corbasson.  All rights reserved
 # This program is free software; you can redistribute it and/or modify it 
 # under the terms of the GNU General Public License as published by the 
 # Free Software Foundation; either version 2 of the License, or (at your 
@@ -30,7 +31,7 @@
 # Windows LNK file parser - Jacob Cunningham - jakec76@users.sourceforge.net
 # Based on the contents of the document:
 # http://www.i2s-lab.com/Papers/The_Windows_Shortcut_File_Format.pdf
-# v1.0
+# v1.1
 
 use strict;
 no warnings;
@@ -103,16 +104,19 @@ if (!defined $ARGV[0]) {
   print_usage();
 }
 my $file = $ARGV[0];
-print "\nLink File:  $ARGV[0]\n";
+# TODO Check what we can/should do with file encodings
+# TODO Reorder columns?
+print "Link File	Link Flags	File Attributes	Create Time	Last Accessed Time	Last Modified Time	Target Length	Icon Index	Show Window	HotKey	File Location	Volume Type	Volume Serial	Volume Label	Base Path	Network Share Name	Mapped Drive	(App Path) Remaining Path	Description	Relative Path	Working Dir	Command Line	Icon Filename\n";
+#print "\nLink File:  $ARGV[0]\n";
+print "$ARGV[0]\t";
 open (FH, "$file") || die "Can't open file $ARGV[0] for reading\n";
 binmode(FH);
 
 # Check header is 4c
-# This is actually 4 bytes long I'm only reading the first 1byte
+# TODO This is actually 4 bytes long I'm only reading the first 1byte
 my $header = read_unpack(0,1);
 if ($header ne "4c") {
-  print "Invalid Lnk file header\n";
-  exit;
+  die "Invalid Lnk file header\n";
 }
 
 # Optional
@@ -122,7 +126,7 @@ if ($header ne "4c") {
 
 #Flags 4bytes (I'm only reading 1st) @14h = 20d
  my $flags = read_unpack_bin(20,1);
- print "Link Flags: ";
+# print "Link Flags: ";
  $flag_cnt = 0;
  while ($flag_cnt < 7) {
    $flag_bit = substr($flags,$flag_cnt,1);
@@ -158,65 +162,74 @@ if ($header ne "4c") {
 
    $flag_cnt++;
   } 
-  print "\n";
+  print "\t";
 
 # File Attributes 4bytes@18h = 24d
 # Only a non-zero if "Flag bit 1" above is set to 1
 #
 if ($flag_bit1 eq "1") {
  my $file_attrib = read_unpack_bin(24,2);
- print "File Attributes: ";
+# print "File Attributes: ";
  $file_att_cnt = 0;
  while ($file_att_cnt < 13) {
    $file_bit = substr($file_attrib,$file_att_cnt,1);
    print "$file_hash{$file_att_cnt}->{$file_bit}";
    $file_att_cnt++;
  }
- print "\n";
+ print "\t";
+} else {
+  print "\t";
 }
 
 # Create time 8bytes @ 1ch = 28
 my $ctime = read_unpack(28,8);
 $ctime = hex(reverse_hex($ctime));
 $ctime = MStime_to_unix($ctime);
-print "Create Time: $ctime\n";
+#print "Create Time: $ctime\n";
+print "$ctime\t";
 
 # Access time 8 bytes@ 0x24 = 36D
 my $atime = read_unpack(36,8);
 $atime = hex(reverse_hex($atime));
 $atime = MStime_to_unix($atime);
-print "Last Accessed time: $atime\n";
+#print "Last Accessed time: $atime\n";
+print "$atime\t";
 
 #Mod Time8b @ 0x2C = 44D
 
 my $mtime = read_unpack(44,8);
 $mtime = hex(reverse_hex($mtime));
 $mtime = MStime_to_unix($mtime);
-print  "Last Modified Time: $mtime\n";
+#print  "Last Modified Time: $mtime\n";
+print "$mtime\t";
 
 #
 #Target File length starts @ 34h = 52d
 my $f_len = read_unpack(52,4);
 $f_len = hex(reverse_hex($f_len));
-print "Target Length: $f_len\n";
+#print "Target Length: $f_len\n";
+print "$f_len\t";
 
 # Icon File info starts @ 38h = 56d
 my $ico_num = read_unpack(56,4);
 $ico_num = hex($ico_num);
-print "Icon Index: $ico_num\n";
+#print "Icon Index: $ico_num\n";
+print "$ico_num\t";
 
 
 #ShowWnd val to pass to target
 # Starts @3Ch = 60d 
 my $show_wnd = read_unpack(60,1);
 $show_wnd = hex($show_wnd);
-print "ShowWnd: $show_wnd $Show_wnd_hash{$show_wnd}\n";
+#print "ShowWnd: $show_wnd $Show_wnd_hash{$show_wnd}\n";
+print "$show_wnd $Show_wnd_hash{$show_wnd}\t";
 
 #Hot key
 # Starts @40h = 64d 
 my $hot_key = read_unpack(64,4);
 $hot_key = hex($hot_key);
-print "HotKey: $hot_key\n";
+#print "HotKey: $hot_key\n";
+print "$hot_key\t";
 
 
 
@@ -251,14 +264,15 @@ my $first_off = read_unpack($first_off_off,1);
 my $vol_flags = read_unpack_bin($vol_flags_off,1);
 my $vol_flags = substr($vol_flags,0,2);
 if ($vol_flags =~ /10/) {
-  print "Target is on local volume\n"; 
+  print "Target is on a local volume\t"; 
    $vol_bit0 = 1;
    $vol_bit1 = 0;
-}
-if ($vol_flags =~ /01/) {
-  print "Target is on Network share\n"; 
+} elsif ($vol_flags =~ /01/) {
+  print "Target is on a network share\t"; 
    $vol_bit1 = 1;
    $vol_bit0 = 0;
+} else {
+  print "\t";
 }
  
 # Local volume table
@@ -284,20 +298,23 @@ if ($vol_bit0 eq "1") {
   my $curr_tab_offset = ($loc_vol_tab_off + $struc_start + 4);
   my $vol_type = read_unpack($curr_tab_offset,4);
   $vol_type = hex(reverse_hex($vol_type));
-  print "Volume Type: $vol_type_hash{$vol_type}\n";
+#  print "Volume Type: $vol_type_hash{$vol_type}\n";
+  print "$vol_type_hash{$vol_type}\t";
 
   # Volume Serial Number
   $curr_tab_offset = ($loc_vol_tab_off + $struc_start + 8);
   my $vol_serial = read_unpack($curr_tab_offset,4);
   $vol_serial = reverse_hex($vol_serial);
-  print "Volume Serial: $vol_serial\n";
+#  print "Volume Serial: $vol_serial\n";
+  print "$vol_serial\t";
 
   # Get the location, and length of the volume label 
   # we should really read the vol_label_loc from offset Ch 
   my $vol_label_loc = ($loc_vol_tab_off + $struc_start + 16);
   my $vol_label_len = ($local_vol_tab_end - $vol_label_loc);
   my $vol_label = read_unpack_ascii($vol_label_loc,$vol_label_len);
-  print "Vol Label: $vol_label\n";
+#  print "Vol Label: $vol_label\n";
+  print "$vol_label\t";
 
 #-------------------------------------------------
 # This is the offset of the base path info within the
@@ -310,8 +327,11 @@ $base_path_off = ($struc_start + $base_path_off);
 
 # Read base path data upto NULL term 
 my $bp_data = read_null_term($base_path_off);
-print "Base Path: $bp_data\n";
+#print "Base Path: $bp_data\n";
+print "$bp_data\t";
 
+} else {
+  print "\t\t\t\t";
 }
 
 #-------------------------------------------------
@@ -329,7 +349,8 @@ if ($vol_bit1 eq "1") {
 	{ die "Error: NSN ofset should always be 14h\n"; }
  $net_share_name_loc = ($net_vol_off + $net_share_name_loc);
  my $net_share_name = read_null_term($net_share_name_loc);
- print "Network Share Name: $net_share_name\n";
+# print "Network Share Name: $net_share_name\n";
+ print "$net_share_name\t";
 
  # Mapped Network Drive Info
  my $net_share_mdrive = ($net_vol_off + 12);
@@ -338,8 +359,11 @@ if ($vol_bit1 eq "1") {
  if ($net_share_mdrive ne "0") {
    $net_share_mdrive = ($net_vol_off + $net_share_mdrive);
    $net_share_mdrive = read_null_term($net_share_mdrive);
-   print "Mapped Drive: $net_share_mdrive\n";
+#   print "Mapped Drive: $net_share_mdrive\n";
+   print "$net_share_mdrive\t";
  }
+} else {
+  print "\t\t";
 }
 
 #Remaining Path
@@ -347,7 +371,8 @@ my $rem_path_off = read_unpack($rem_path_off,4);
 $rem_path_off = (hex(reverse_hex($rem_path_off)));
 $rem_path_off = ($struc_start + $rem_path_off);
 my $rem_data = read_null_term($rem_path_off);
-print "(App Path:) Remaining Path: $rem_data\n";
+#print "(App Path:) Remaining Path: $rem_data\n";
+print "$rem_data\t";
 
 # End of FileInfo Structure
 #------------------------------------------------------------------------\
@@ -360,32 +385,47 @@ my $addnl_text;
 # present if bit2 is set in header flags.
 if ($flag_bit2 eq "1") {
  ($addnl_text,$next_loc) = add_info("$next_loc");
- print "Description: $addnl_text\n";
+# print "Description: $addnl_text\n";
+ print "$addnl_text\t";
  $next_loc = ($next_loc + 1);
+} else {
+  print "\t";
 }
 
 # Relative Path
 if ($flag_bit3 eq "1") {
  ($addnl_text,$next_loc) = add_info("$next_loc");
- print "Relative Path: $addnl_text\n";
+# print "Relative Path: $addnl_text\n";
+ print "$addnl_text\t";
  $next_loc = ($next_loc + 1);
+} else {
+  print "\t";
 }
 # Working Dir
 if ($flag_bit4 eq "1") {
  ($addnl_text,$next_loc) = add_info("$next_loc");
- print "Working Dir: $addnl_text\n";
+# print "Working Dir: $addnl_text\n";
+ print "$addnl_text\t";
  $next_loc = ($next_loc + 1);
+} else {
+  print "\t";
 }
 # CMD Line
 if ($flag_bit5 eq "1") {
 ($addnl_text,$next_loc) = add_info("$next_loc");
- print "Command Line: $addnl_text\n";
+# print "Command Line: $addnl_text\n";
+ print "$addnl_text\t";
  $next_loc = ($next_loc + 1);
+} else {
+  print "\t";
 }
 #Icon filename
 my ($addnl_text,$next_loc) = add_info("$next_loc");
 if ($flag_bit6 eq "1") {
- print "Icon filename: $addnl_text\n";
+# print "Icon filename: $addnl_text\n";
+ print "$addnl_text\t";
+} else {
+  print "\t";
 }
 
 # END
@@ -465,6 +505,7 @@ sub MStime_to_unix {
  $mstime_dec-=$MSConversion;
 
  # Get localtime
+ # TODO Check if it works correctly, outputs e.g. 2004-00-09, 2011-02-31, ...
  my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($mstime_dec);
   my @weekdays_array = qw(Sun Mon Tue Wed Thur Fri Sat);
   my @month_array = qw(Jan Feb Mar Apr May Jun Jul Aug Sept Oct Nov Dec);
@@ -476,7 +517,8 @@ sub MStime_to_unix {
   $min = sprintf("%02d",$min);
   $sec = sprintf("%02d",$sec);
 
-  my $datestring = "$weekdays_array[$wday] $month_array[$mon] $mday $year $hour:$min:$sec";
+#  my $datestring = "$weekdays_array[$wday] $month_array[$mon] $mday $year $hour:$min:$sec";
+  my $datestring = "$year-$mon-$mday $hour:$min:$sec";
   return $datestring;
 }
 
