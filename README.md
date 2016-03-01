@@ -1,9 +1,10 @@
 ----------------------------------------------------------------------
 # lnk-parse
  Copyright 2006 Jacob Cunningham <jakec76@users.sourceforge.net>
+ 
  Copyright 2016 Loïc Corbasson <loic.corbasson@gmail.com>
 
- Distributed under the GNU General Public License v2 or later
+ Distributed under the GNU General Public License v2 or later.
 
 ----------------------------------------------------------------------
 
