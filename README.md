@@ -6,6 +6,8 @@
 
  Distributed under the GNU General Public License v2 or later.
 
+ [Please report any issues here.](https://github.com/lcorbasson/lnk-parse/issues)
+
 ----------------------------------------------------------------------
 
 ## About
@@ -16,7 +18,7 @@
  by Jesse Hager
  with a few exceptions<sup id="a1">[1](#f1)</sup>.
 
- I have tested this using Perl version 5.8.2 under Linux and Perl 5.8.6
+ Jacob Cunningham has tested this using Perl version 5.8.2 under Linux and Perl 5.8.6
  ActiveState Binary Build 811 on Windows 2000 with LNK files from
  Windows 2000/XP/2003.
 
@@ -28,9 +30,9 @@
 #### Footnotes
 <sup id="f1">[1](#a1)</sup>
 Exceptions:
- The output of this script was tested against the output of commercial
- software to verify accuracy. During my rigerous testing I discovered
- the following corrections need to be made to the
+ The output of this script was tested by Jacob Cunningham against the output of commercial
+ software to verify accuracy. During his rigorous testing he discovered
+ that the following corrections need to be made to the
  _The Windows Shortcut File Format_ document, version 1.0:
  1. The Last Access Time is actually at header location `0x24` and the
     Modification Time is actually at header offset `0x2C`;
