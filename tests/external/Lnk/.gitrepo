@@ -1,0 +1,11 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/lcorbasson/lnk-parse--tests-from-Lnk.git
+	branch = master
+	commit = 5580023758762f799ef1cf2bd32dbab353b5a6cf
+	parent = fb2bd21474b75c2d29698b99beaafe1e836c9f07
+	cmdver = 0.3.0
