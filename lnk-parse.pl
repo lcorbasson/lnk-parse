@@ -116,7 +116,7 @@ binmode(FH);
 # TODO This is actually 4 bytes long I'm only reading the first 1byte
 my $header = read_unpack(0,1);
 if ($header ne "4c") {
-  die "Invalid Lnk file header\n";
+  die "Invalid LNK file header\n";
 }
 
 # Optional
@@ -346,7 +346,7 @@ if ($vol_bit1 eq "1") {
  my $net_share_name_off = ($net_vol_off + 8);
  my $net_share_name_loc = hex(reverse_hex(read_unpack($net_share_name_off,4)));
  if ($net_share_name_loc  ne "20") 
-	{ die "Error: NSN ofset should always be 14h\n"; }
+	{ die "Error: NSN offset should always be 14h\n"; }
  $net_share_name_loc = ($net_vol_off + $net_share_name_loc);
  my $net_share_name = read_null_term($net_share_name_loc);
 # print "Network Share Name: $net_share_name\n";
