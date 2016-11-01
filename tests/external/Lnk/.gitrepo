@@ -6,6 +6,6 @@
 [subrepo]
 	remote = https://github.com/lcorbasson/lnk-parse--tests-from-Lnk.git
 	branch = master
-	commit = 5580023758762f799ef1cf2bd32dbab353b5a6cf
-	parent = fb2bd21474b75c2d29698b99beaafe1e836c9f07
+	commit = 937d6e768d7879222aa065eff4444b2b0213e7fc
+	parent = fb5e5d6203451a212f418f5b2f597bff4f17c8a8
 	cmdver = 0.3.0
